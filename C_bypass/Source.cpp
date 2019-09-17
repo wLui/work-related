@@ -108,26 +108,39 @@ int main() {
 	return 0;
 }
 
+/*
+	Try the following, for bit k < n, queue Q of bits stored
+	1. Read m = min{k, bpb - 1} bits from Q and store into temp
+	2. Adjust temp for or'ing with curr - L.S by bpb - m - 1
+	3. Store and R.S curr m + 1 bits from Q, if we've stored less than 
+	adjTotal bits
+*/
 void decompress(unsigned char **data_ptr, int n) {
 	queue<int> q;
-	int m, currPow, nPopped, tShift, nPushed;
+	/*
+		note - decompression on n bytes will append n zeros to the end of the 
+		decompressed result
+	*/
 	unsigned char curr, temp;
+	int totalBits = n * bitsPerByte;
+
+	// main variables for algorithm
+	int m, adjTotal, totalPushed;
+	adjTotal = totalBits - n;
+	totalPushed = 0;
+
+	// other variables for iteration
+	int currPow, nPopped, tShift, nPushed;
+
 	for(int k = 0; k < n; k++) {	
 		curr = (*data_ptr)[k];	
-		m = k;
-
-		if(m > bitsPerByte - 1)
-			m = bitsPerByte - 1;
+		m = (k <= bitsPerByte - 1) ? k : bitsPerByte - 1;
 		tShift = bitsPerByte - m - 1;
-
-		if(tShift < 0)
-			tShift = 0;
-
 
 		temp = 0;
 		currPow = 1;
 		// pop m bits from q and store in temp
-		for(nPopped = 0; nPopped < m; nPopped++) {
+		for(nPopped = 0; nPopped < m && totalPushed < adjTotal; nPopped++) {
 			temp = temp + (q.front() * currPow);
 			q.pop();
 			currPow *= 2;
@@ -135,19 +148,24 @@ void decompress(unsigned char **data_ptr, int n) {
 
 		// adjust temp for OR'ing
 		temp = temp << tShift;
-		printf("byte: %d\n", k);	
-		printf("temp: %x\n", temp);
+		// printf("byte: %d\n", k);	
+		// printf("temp: %x\n", temp);
+
 		// Adjust curr by storing m + 1 bits into q for now
-		for(nPushed = 0; nPushed < m + 1; nPushed++) {
+		for(nPushed = 0; nPushed < m + 1 && totalPushed < adjTotal; nPushed++) {
 			q.push(curr & 1);
 			curr = curr >> 1;
+			totalPushed++;
 		}
 
-		printf("curr - before adjustment: %x\n", curr);
+		// printf("curr - before adjustment: %x\n", curr);
 		curr = curr | temp;
-		printf("curr - after adjustment: %x, %c\n", curr, curr);
+		// printf("curr - after adjustment: %x, %c\n", curr, curr);
 
 		(*data_ptr)[k] = curr;	
+	}
+	if(!q.empty()) {
+		printf("queue not empty afterwards- unexpected\n");
 	}
 
 	return;
