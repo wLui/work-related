@@ -1,1 +1,2 @@
-Message here made in master
+Message here made in master. Adding new line below (made in temp)
+Message here in temp
